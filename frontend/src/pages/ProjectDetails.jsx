@@ -12,20 +12,26 @@ const ProjectDetails = () => {
   const [loading, setLoading] = useState(true);
   const [newTask, setNewTask] = useState({ title: '', priority: 'medium' });
 
-  useEffect(() => { fetchData(); }, [id]);
-
-  const fetchData = async () => {
+  // Use the flag approach
+  const fetchData = async (isInitialLoad = false) => {
+    if (isInitialLoad) setLoading(true);
     try {
-      setLoading(true);
-      const [projRes, tasksRes] = await Promise.all([
+      const [projectRes, tasksRes] = await Promise.all([
         api.get(`/projects/${id}`),
         api.get(`/projects/${id}/tasks`)
       ]);
-      setProject(projRes.data.data);
+      setProject(projectRes.data.data);
       setTasks(tasksRes.data.data.tasks);
-    } catch (error) { toast.error('Error loading data'); } 
-    finally { setLoading(false); }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      if (isInitialLoad) setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (id) fetchData(true);
+  }, [id]);
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
@@ -33,14 +39,16 @@ const ProjectDetails = () => {
       await api.post(`/projects/${id}/tasks`, newTask);
       toast.success('Task added');
       setNewTask({ title: '', priority: 'medium' });
-      fetchData();
-    } catch (error) { toast.error('Failed to add task'); }
+      fetchData(); // Refresh list without loading spinner
+    } catch (error) { 
+      toast.error('Failed to add task'); 
+    }
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       await api.patch(`/tasks/${taskId}/status`, { status: newStatus });
-      fetchData();
+      fetchData(); // Refresh list without loading spinner
     } catch (error) { toast.error('Update failed'); }
   };
 
@@ -82,6 +90,7 @@ const ProjectDetails = () => {
           </div>
           <p style={{color: '#6b7280', marginTop: '5px'}}>{project.description || 'No description provided.'}</p>
         </div>
+        
         {/* Split View */}
         <div className="split-view">
           
@@ -115,7 +124,6 @@ const ProjectDetails = () => {
                         <option value="completed">Done</option>
                         </select>
                         
-                        {/* DELETE BUTTON */}
                         <button 
                         onClick={() => handleDeleteTask(task.id)}
                         style={{background:'#fee2e2', color:'#b91c1c', border:'none', borderRadius:'6px', width:'28px', height:'28px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem', paddingBottom:'4px'}}

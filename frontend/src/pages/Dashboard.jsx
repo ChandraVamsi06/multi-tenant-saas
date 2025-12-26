@@ -10,36 +10,46 @@ const Dashboard = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchProjects(); }, []);
+  // Initial Load Only
+  useEffect(() => { 
+    fetchProjects(true); 
+  }, []);
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (isInitialLoad = false) => {
+    if (isInitialLoad) setLoading(true);
     try {
       const response = await api.get('/projects');
       setProjects(response.data.data.projects);
-    } catch (error) { toast.error('Failed to load projects'); } 
-    finally { setLoading(false); }
+    } catch (error) { 
+      toast.error('Failed to load projects'); 
+    } finally { 
+      if (isInitialLoad) setLoading(false); 
+    }
   };
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
+    
     try {
       await api.post('/projects', { name: newProjectName });
       toast.success('Project created!');
       setNewProjectName('');
-      fetchProjects();
-    } catch (error) { toast.error(error.response?.data?.message); }
+      fetchProjects(); // Update list without full page reload
+    } catch (error) { 
+      toast.error(error.response?.data?.message || 'Failed to create project'); 
+    }
   };
 
   // DELETE FUNCTION
   const handleDeleteProject = async (e, id) => {
-    e.preventDefault(); // Stop clicking into the project
-    e.stopPropagation(); // Stop bubbling
+    e.preventDefault(); 
+    e.stopPropagation(); 
     if (window.confirm('Are you sure you want to delete this project?')) {
       try {
         await api.delete(`/projects/${id}`);
         toast.success('Project deleted');
-        fetchProjects();
+        fetchProjects(); // Update list without full page reload
       } catch (error) {
         toast.error('Failed to delete project');
       }
@@ -108,7 +118,7 @@ const Dashboard = () => {
                    </button>
                 </div>
 
-                {/* PROJECT NAME (Added Here) */}
+                {/* PROJECT NAME */}
                 <h3 style={{margin: '0 0 10px 0', fontSize: '1.2rem', color: '#1f2937'}}>{project.name}</h3>
                 
                 {/* Description */}

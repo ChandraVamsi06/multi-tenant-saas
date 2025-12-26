@@ -17,13 +17,9 @@ const Team = () => {
     role: 'user'
   });
 
-  useEffect(() => {
-    if (user?.tenantId || user?.tenant_id) {
-      fetchMembers();
-    }
-  }, [user]);
-
-  const fetchMembers = async () => {
+  // --- FETCH MEMBERS FUNCTION ---
+  const fetchMembers = async (isInitialLoad = false) => {
+    if (isInitialLoad) setLoading(true); // Only show big loader on first visit
     try {
       const tId = user.tenantId || user.tenant_id;
       const response = await api.get(`/tenants/${tId}/users`);
@@ -31,10 +27,17 @@ const Team = () => {
     } catch (error) {
       toast.error('Failed to load team members');
     } finally {
-      setLoading(false);
+      if (isInitialLoad) setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (user?.tenantId || user?.tenant_id) {
+      fetchMembers(true);
+    }
+  }, [user]);
+
+  // --- ADD MEMBER FUNCTION ---
   const handleAddMember = async (e) => {
     e.preventDefault();
     try {
@@ -42,7 +45,7 @@ const Team = () => {
       await api.post(`/tenants/${tId}/users`, newUser);
       toast.success('Team member added successfully!');
       setNewUser({ fullName: '', email: '', password: '', role: 'user' });
-      fetchMembers();
+      fetchMembers(); // <--- No argument = No loading spinner!
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to add user');
     }
